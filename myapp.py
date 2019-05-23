@@ -1,4 +1,5 @@
 import dash
+import dash_daq as daq
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
@@ -15,10 +16,11 @@ import sqlite3
 import datetime as dt
 from styles import *
 
+
 app = dash.Dash(
     'streaming-wind-app',
-#    stylesheets=['Css/skeleton.min.css']
-#    external_stylesheets=external_css
+    #    stylesheets=['Css/skeleton.min.css']
+    #    external_stylesheets=external_css
 )
 server = app.server
 app.title = 'Marine Group'
@@ -34,8 +36,8 @@ def create_winddirection_graph():
             dcc.Graph(id='wind-direction'),
         ], className='twelve columns wind-direction'),
     ],
-    className='row wind-polar-row',
-    style=frame_style)
+        className='row wind-polar-row',
+        style=frame_style)
 
 
 def create_windspeed_graph():
@@ -48,39 +50,39 @@ def create_windspeed_graph():
         ], className='twelve columns wind-speed'),
         dcc.Interval(id='wind-speed-update', interval=4000, n_intervals=0),
     ],
-    className='row wind-speed-row',
-    style=frame_style)
+        className='row wind-speed-row',
+        style=frame_style)
 
 
 app.layout = dcc.Tabs(id="tabs", children=[
     dcc.Tab(label='Wind', children=[
-            html.Table(
-                html.Tr([
-                    html.Td(create_winddirection_graph(), style={'width': '25%'}),
-                    html.Td(create_windspeed_graph(), style={'width': '75%'})
-                ]),
-            )
-        ],
-        style=tab_style,
-        selected_style=tab_selected_style
-    ),
+        html.Table(
+            html.Tr([
+                html.Td(create_winddirection_graph(), style={'width': '25%'}),
+                html.Td(create_windspeed_graph(), style={'width': '75%'})
+            ]),
+        )
+    ],
+            style=tab_style,
+            selected_style=tab_selected_style
+            ),
 
     dcc.Tab(label='Water', children=[
-            dcc.Graph(
-                id='example-graph-1',
-                figure={
-                    'data': [
-                        {'x': [1, 2, 3], 'y': [1, 4, 1],
-                            'type': 'bar', 'name': 'Ra1'},
-                        {'x': [1, 2, 3], 'y': [1, 2, 3],
-                            'type': 'bar', 'name': 'Ra2'},
-                    ]
-                }
-            )
-        ],
-        style=tab_style,
-        selected_style=tab_selected_style
-    ),
+        dcc.Graph(
+            id='example-graph-1',
+            figure={
+                'data': [
+                    {'x': [1, 2, 3], 'y': [1, 4, 1],
+                     'type': 'bar', 'name': 'Ra1'},
+                    {'x': [1, 2, 3], 'y': [1, 2, 3],
+                     'type': 'bar', 'name': 'Ra2'},
+                ]
+            }
+        )
+    ],
+            style=tab_style,
+            selected_style=tab_selected_style
+            ),
 
     dcc.Tab(label='Oil', children=[
             dcc.Graph(id='example-graph-2')
@@ -89,9 +91,40 @@ app.layout = dcc.Tabs(id="tabs", children=[
         selected_style=tab_selected_style
     ),
 
-    dcc.Tab(label='Other', style=tab_style, selected_style=tab_selected_style),
+    dcc.Tab(label='Other', style=tab_style, selected_style=tab_selected_style, children=[
+        html.Table([
+            html.Tr([
+                html.Td(
+                    daq.Gauge(
+                        id='my-gauge{}'.format(i+1),
+                        label="Default",
+                        value=6
+                    )
+                )
+                for i in range(5)
+            ])
+        ]),
+        html.Div([
+            dcc.Slider(
+                id='my-gauge-slider',
+                min=0,
+                max=10,
+                step=1,
+                value=5
+            )
+        ]),
+    ]),
 ],
 style={'height': '30px'})
+
+@app.callback(
+    dash.dependencies.Output('my-gauge1', 'value'),
+    [
+        dash.dependencies.Input('my-gauge-slider', 'value'),
+    ]
+)
+def update_output(value):
+    return value
 
 
 @app.callback(Output('wind-speed', 'figure'), [Input('wind-speed-update', 'n_intervals')])
@@ -106,7 +139,7 @@ def gen_wind_speed(interval):
     con = sqlite3.connect("./Data/wind-data.db")
     df = pd.read_sql_query('SELECT Speed, SpeedError, Direction from Wind where\
                             rowid > "{}" AND rowid <= "{}";'
-                            .format(total_time-200, total_time), con)
+                           .format(total_time-200, total_time), con)
 
     trace = Scatter(
         y=df['Speed'],
@@ -159,7 +192,7 @@ def gen_wind_direction(interval):
 
     con = sqlite3.connect("./Data/wind-data.db")
     df = pd.read_sql_query("SELECT * from Wind where rowid = " +
-                                         str(total_time) + ";", con)
+                           str(total_time) + ";", con)
     val = df['Speed'].iloc[-1]
     direction = [0, (df['Direction'][0]-7), (df['Direction'][0]+7), 0]
 
